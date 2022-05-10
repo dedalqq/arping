@@ -86,7 +86,7 @@ func Ping(dstIP net.IP) (net.HardwareAddr, time.Duration, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	return PingOverIface(dstIP, *iface)
+	return PingOverIface(dstIP, *iface, nil)
 }
 
 // PingOverIfaceByName sends an arp ping over interface name 'ifaceName' to 'dstIP'
@@ -99,11 +99,11 @@ func PingOverIfaceByName(dstIP net.IP, ifaceName string) (net.HardwareAddr, time
 	if err != nil {
 		return nil, 0, err
 	}
-	return PingOverIface(dstIP, *iface)
+	return PingOverIface(dstIP, *iface, nil)
 }
 
 // PingOverIface sends an arp ping over interface 'iface' to 'dstIP'
-func PingOverIface(dstIP net.IP, iface net.Interface) (net.HardwareAddr, time.Duration, error) {
+func PingOverIface(dstIP net.IP, iface net.Interface, dstMac net.HardwareAddr) (net.HardwareAddr, time.Duration, error) {
 	if err := validateIP(dstIP); err != nil {
 		return nil, 0, err
 	}
@@ -114,8 +114,11 @@ func PingOverIface(dstIP net.IP, iface net.Interface) (net.HardwareAddr, time.Du
 		return nil, 0, err
 	}
 
-	broadcastMac := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	request := newArpRequest(srcMac, srcIP, broadcastMac, dstIP)
+	if dstMac == nil {
+		dstMac = net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	}
+
+	request := newArpRequest(srcMac, srcIP, dstMac, dstIP)
 
 	sock, err := initialize(iface)
 	if err != nil {
